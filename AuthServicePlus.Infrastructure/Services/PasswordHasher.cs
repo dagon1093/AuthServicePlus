@@ -17,5 +17,11 @@ namespace AuthServicePlus.Infrastructure.Services
             var hash = sha256.ComputeHash(bytes);
             return Convert.ToBase64String(hash);
         }
+
+        public bool Verify(string password, string hash)
+        {
+            var hashedInput = Hash(password);
+            return hashedInput == hash;
+        }
     }
 }

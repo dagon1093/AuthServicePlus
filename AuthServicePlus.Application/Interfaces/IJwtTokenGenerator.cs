@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AuthServicePlus.Domain.Entities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,11 +7,8 @@ using System.Threading.Tasks;
 
 namespace AuthServicePlus.Application.Interfaces
 {
-    public interface IPasswordHasher
+    public interface IJwtTokenGenerator
     {
-        string Hash(string password);
-
-        bool Verify(string password, string hash);
-        
+        string GenerateToken(User user);
     }
 }
