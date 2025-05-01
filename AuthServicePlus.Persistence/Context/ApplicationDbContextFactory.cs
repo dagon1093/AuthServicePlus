@@ -7,7 +7,7 @@ using Microsoft.Extensions.FileProviders;
 
 namespace AuthServicePlus.Persistence.Context
 {
-    public class ApplicationDbContextFactory
+    public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
     {
         public ApplicationDbContext CreateDbContext(string[] args)
         {

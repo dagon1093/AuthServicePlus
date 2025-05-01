@@ -1,6 +1,8 @@
 using AuthServicePlus.Application.Interfaces;
+using AuthServicePlus.Domain.Interfaces;
 using AuthServicePlus.Infrastructure.Services;
 using AuthServicePlus.Persistence.Context;
+using AuthServicePlus.Persistence.Repositories;
 using AuthServicePlus.Persistence.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 //builder.Services.AddOpenApi();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddControllers();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
