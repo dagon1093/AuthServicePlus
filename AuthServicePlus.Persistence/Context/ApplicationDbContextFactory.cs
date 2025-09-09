@@ -11,13 +11,16 @@ namespace AuthServicePlus.Persistence.Context
     {
         public ApplicationDbContext CreateDbContext(string[] args)
         {
+            var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+
+            // Прочитай конфиг (пути подстрой под свою структуру)
             var config = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: false)
+                .AddJsonFile("appsettings.json", optional: true)
+                .AddJsonFile("appsettings.Development.json", optional: true)
                 .Build();
 
-            var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-            optionsBuilder.UseNpgsql(config.GetConnectionString("DefaultConnection"));
+            optionsBuilder.UseNpgsql(config.GetConnectionString("Default"));
+            
 
             return new ApplicationDbContext(optionsBuilder.Options);
         }
