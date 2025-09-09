@@ -30,6 +30,11 @@ namespace AuthServicePlus.Persistence.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task UpdateUserAsync(User user)
+        {
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+        }
         // добавим по мере необходимости другие методы
     }
 }

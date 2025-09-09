@@ -2,6 +2,7 @@
 using AuthServicePlus.Application.Interfaces;
 using AuthServicePlus.Domain.Entities;
 using AuthServicePlus.Domain.Interfaces;
+using AuthServicePlus.Infrastructure.Services;
 
 namespace AuthServicePlus.Persistence.Services
 {
@@ -37,7 +38,7 @@ namespace AuthServicePlus.Persistence.Services
             await _userRepository.AddUserAsync(user);
         }
 
-        public async Task<string> LoginAsync(LoginUserDto dto)
+        public async Task<AuthResponseDto> LoginAsync(LoginUserDto dto)
         {
             var user = await _userRepository.GetByUsernameAsync(dto.Username);
 
@@ -46,7 +47,24 @@ namespace AuthServicePlus.Persistence.Services
                 throw new Exception("Неверный логин или пароль");
             }
 
-            return _jwtTokenGenerator.GenerateToken(user);
+            // создать refresh
+            var refresh = RefreshTokenFactory.Create(user.Id, TimeSpan.FromDays(7));
+            user.RefreshTokens.Add(refresh);
+
+            await _userRepository.UpdateUserAsync(user);
+
+            // создать access
+            var access = _jwtTokenGenerator.GenerateToken(user);
+            var accessTtlSeconds = 3600; // заменить на реальное значение из конфигурации
+            return new AuthResponseDto
+            {
+                AccessToken = access,
+                RefreshToken = refresh.Token,
+                ExpiresIn = accessTtlSeconds,
+                TokenType = "Bearer"
+            };
+
+
         }
     }
 }

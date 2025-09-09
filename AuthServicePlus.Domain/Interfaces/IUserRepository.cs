@@ -11,5 +11,6 @@ namespace AuthServicePlus.Domain.Interfaces
     {
         Task<User?> GetByUsernameAsync(string username);
         Task AddUserAsync(User user);
+        Task UpdateUserAsync(User user);
     }
 }
