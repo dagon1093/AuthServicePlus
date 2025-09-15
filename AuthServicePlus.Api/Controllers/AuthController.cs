@@ -30,7 +30,7 @@ namespace AuthServicePlus.Api.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginUserDto dto)
+        public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginUserDto dto)
         {
             try
             {
@@ -44,11 +44,11 @@ namespace AuthServicePlus.Api.Controllers
         }
 
         [HttpPost("refresh")]
-        public async Task<IActionResult> Refresh([FromBody] RefreshRequestDto dto)
+        public async Task<ActionResult<AuthResponseDto>> Refresh([FromBody] RefreshRequestDto dto)
         {
             try
             {
-                return Ok(_authService.RefreshAsync(dto.RefreshToken));
+                return Ok(await _authService.RefreshAsync(dto.RefreshToken));
             }
             catch (UnauthorizedAccessException ex)
             {
