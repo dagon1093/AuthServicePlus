@@ -9,6 +9,14 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+var cs = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(cs))
+    throw new InvalidOperationException("Connection string 'DefaultConnection' is missing or empty (Program.cs).");
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(cs));
+
 // Add services to the container.
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -20,8 +28,9 @@ builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
 builder.Services.AddControllers();
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+//builder.Services.AddDbContext<ApplicationDbContext>(options =>
+//    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddEndpointsApiExplorer();
 //builder.Services.AddSwaggerGen();
