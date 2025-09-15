@@ -9,8 +9,13 @@ namespace AuthServicePlus.Domain.Interfaces
 {
     public interface IUserRepository
     {
-        Task<User?> GetByUsernameAsync(string username);
+        Task<User?> GetByUsernameAsync(string username, bool track = true);
         Task AddUserAsync(User user);
         Task UpdateUserAsync(User user);
+        Task<User?> GetByUserId(int userId);
+        Task<User?> GetByRefreshToken(string refreshToken, bool track = true);
+        void AddRefreshToken(User user, RefreshToken token);
+        bool RevokeRefreshToken(User user, string refreshToken);
+        Task SaveChangesAsync();
     }
 }

@@ -42,5 +42,18 @@ namespace AuthServicePlus.Api.Controllers
                 return Unauthorized(new { error = ex.Message });
             }
         }
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh([FromBody] RefreshRequestDto dto)
+        {
+            try
+            {
+                return Ok(_authService.RefreshAsync(dto.RefreshToken));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { error = ex.Message });
+            }
+        }
     }
 }

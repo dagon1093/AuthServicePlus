@@ -10,19 +10,19 @@ namespace AuthServicePlus.Domain.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? RevokedAt { get; set; } = null;
         public int UserId { get; set; }
-        public User User { get; set; }
+        public User User { get; set; } = null!; //для навигации EF
 
 
         public RefreshToken() { }
 
-        public RefreshToken(string token, DateTime expiration, DateTime createdAt, DateTime? revokedAt, int userId, User user)
+        public RefreshToken(string token, DateTime expiration, DateTime createdAt, DateTime? revokedAt, int userId)
         {
             Token = token;
             Expiration = expiration;
             CreatedAt = createdAt;
             RevokedAt = revokedAt;
             UserId = userId;
-            User = user;
+
         }
 
     } 

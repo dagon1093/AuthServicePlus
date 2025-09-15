@@ -2,11 +2,7 @@
 using AuthServicePlus.Domain.Interfaces;
 using AuthServicePlus.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace AuthServicePlus.Persistence.Repositories
 {
@@ -19,8 +15,10 @@ namespace AuthServicePlus.Persistence.Repositories
             _context = context;
         }
 
-        public async Task<User?> GetByUsernameAsync(string username)
+        public async Task<User?> GetByUsernameAsync(string username, bool track = true)
         {
+            var query = _context.Users.Include(u => u.RefreshTokens).AsQueryable();
+            if (!track) query = query.AsNoTracking();
             return await _context.Users.SingleOrDefaultAsync(u => u.Username == username);
         }
 
@@ -36,5 +34,35 @@ namespace AuthServicePlus.Persistence.Repositories
             await _context.SaveChangesAsync();
         }
         // добавим по мере необходимости другие методы
+
+        public async Task<User?> GetByUserId(int userId)
+        {
+            return await _context.Users.SingleOrDefaultAsync(u => u.Id == userId);
+        }
+
+        public async Task<User?> GetByRefreshToken(string refreshToken, bool track = true)
+        {   
+            var query = _context.Users.Include(u => u.RefreshTokens).AsQueryable();
+            if (!track) query = query.AsNoTracking();
+            return await _context.Users.SingleOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == refreshToken));
+        }
+
+        public void AddRefreshToken(User user, RefreshToken token)
+        {
+            user.RefreshTokens.Add(token);
+        }
+
+        public bool RevokeRefreshToken(User user, string token)
+        {
+            var rt = user.RefreshTokens.FirstOrDefault(t => t.Token == token);
+            if (rt != null || rt.RevokedAt != null)
+                return false;
+        
+            rt.RevokedAt = DateTime.UtcNow;
+            return true;
+        }
+
+        public Task SaveChangesAsync() => _context.SaveChangesAsync();
+
     }
 }

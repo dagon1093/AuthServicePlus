@@ -12,6 +12,7 @@ namespace AuthServicePlus.Persistence.Services
         private readonly IPasswordHasher _passwordHasher;
         public readonly IJwtTokenGenerator _jwtTokenGenerator;
 
+
         public AuthService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtTokenGenerator jwtTokenGenerator)
         {
             _userRepository = userRepository;
@@ -47,15 +48,18 @@ namespace AuthServicePlus.Persistence.Services
                 throw new Exception("Неверный логин или пароль");
             }
 
+
+            // создать access
+            var access = _jwtTokenGenerator.GenerateToken(user);
+            var accessTtlSeconds = 3600; //todo заменить на реальное значение из конфигурации
+
             // создать refresh
             var refresh = RefreshTokenFactory.Create(user.Id, TimeSpan.FromDays(7));
             user.RefreshTokens.Add(refresh);
 
             await _userRepository.UpdateUserAsync(user);
 
-            // создать access
-            var access = _jwtTokenGenerator.GenerateToken(user);
-            var accessTtlSeconds = 3600; // заменить на реальное значение из конфигурации
+            
             return new AuthResponseDto
             {
                 AccessToken = access,
@@ -64,6 +68,31 @@ namespace AuthServicePlus.Persistence.Services
                 TokenType = "Bearer"
             };
 
+        }
+
+        public async Task<AuthResponseDto> RefreshAsync(string refreshToken)
+        {
+            var user = await _userRepository.GetByRefreshToken(refreshToken) ?? throw new UnauthorizedAccessException("Invalid refresh token.");
+
+            var rt = user.RefreshTokens.First(t => t.Token == refreshToken);
+            if (rt.RevokedAt != null) throw new UnauthorizedAccessException("Token has revoked.");
+            if (rt.Expiration <= DateTime.UtcNow) throw new UnauthorizedAccessException("Token expired.");
+
+            //ротация
+            _userRepository.RevokeRefreshToken(user, refreshToken);
+            var newRt = RefreshTokenFactory.Create(user.Id, TimeSpan.FromDays(7));
+            _userRepository.AddRefreshToken(user,newRt);
+
+            var newAccess = _jwtTokenGenerator.GenerateToken(user);
+            await _userRepository.SaveChangesAsync();
+
+            return new AuthResponseDto
+            {
+                AccessToken = newAccess,
+                RefreshToken = newRt.Token,
+                ExpiresIn = 3600,
+                TokenType = "Bearer"
+            };
 
         }
     }

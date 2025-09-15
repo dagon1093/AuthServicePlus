@@ -11,18 +11,33 @@ namespace AuthServicePlus.Persistence.Context
     {
         public ApplicationDbContext CreateDbContext(string[] args)
         {
-            var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+            var apiProjectPath = Path.GetFullPath(
+                Path.Combine(Directory.GetCurrentDirectory(), "..", "AuthServicePlus.Api"));
 
-            // Прочитай конфиг (пути подстрой под свою структуру)
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+                             ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+                             ?? "Development";
+
+            // диагностика
+             Console.WriteLine($"API path: {apiProjectPath}");
+             Console.WriteLine(File.Exists(Path.Combine(apiProjectPath, "appsettings.json")));
+
             var config = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json", optional: true)
-                .AddJsonFile("appsettings.Development.json", optional: true)
+                .SetBasePath(apiProjectPath) // КЛЮЧЕВОЕ!
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+                .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: false)
                 .Build();
 
-            optionsBuilder.UseNpgsql(config.GetConnectionString("Default"));
-            
 
-            return new ApplicationDbContext(optionsBuilder.Options);
+            var cs = config.GetConnectionString("DefaultConnection")
+                     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found in appsettings.");
+
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseNpgsql(cs)
+                .Options;
+
+
+            return new ApplicationDbContext(options);
         }
     }
 }
