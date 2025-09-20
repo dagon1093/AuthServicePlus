@@ -1,6 +1,8 @@
 ﻿using AuthServicePlus.Application.DTOs;
 using AuthServicePlus.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace AuthServicePlus.Api.Controllers
 {
@@ -54,6 +56,19 @@ namespace AuthServicePlus.Api.Controllers
             {
                 return Unauthorized(new { error = ex.Message });
             }
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public ActionResult<object> Me()
+        {
+            var userId  = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+            var name = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name;
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            var expires = User.FindFirst("exp")?.Value;
+
+            return Ok(new { userId, name, role, expires });
+
         }
     }
 }

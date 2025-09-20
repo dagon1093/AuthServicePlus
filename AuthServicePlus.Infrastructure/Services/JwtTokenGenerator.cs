@@ -1,24 +1,22 @@
 ﻿using AuthServicePlus.Application.Interfaces;
 using AuthServicePlus.Domain.Entities;
-using Microsoft.Extensions.Configuration;
+using AuthServicePlus.Infrastructure.Options;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 
 namespace AuthServicePlus.Infrastructure.Services
 {
     public class JwtTokenGenerator : IJwtTokenGenerator
     {
-        private readonly IConfiguration _configuration;
+        
+        private readonly JwtOptions _jwt; 
 
-        public JwtTokenGenerator(IConfiguration configuration)
+        public JwtTokenGenerator(IOptions<JwtOptions>  jwtOptions)
         {
-            _configuration = configuration;
+            _jwt = jwtOptions.Value;
         }
 
         public string GenerateToken(User user)
@@ -30,14 +28,14 @@ namespace AuthServicePlus.Infrastructure.Services
                 new Claim(ClaimTypes.Role, user.Role)
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Key!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
+                issuer: _jwt.Issuer,
+                audience: _jwt.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(2),
+                expires: DateTime.UtcNow.AddMinutes(_jwt.AccessTokenMinutes),
                 signingCredentials: creds
             );
 
