@@ -76,7 +76,7 @@ namespace AuthServicePlus.Persistence.Services
 
         public async Task<AuthResponseDto> RefreshAsync(string refreshToken)
         {
-            var user = await _userRepository.GetByRefreshToken(refreshToken) ?? throw new UnauthorizedAccessException("Invalid refresh token.");
+            var user = await _userRepository.GetByRefreshTokenAsync(refreshToken) ?? throw new UnauthorizedAccessException("Invalid refresh token.");
 
             var rt = user.RefreshTokens.First(t => t.Token == refreshToken);
             if (rt.RevokedAt != null) throw new UnauthorizedAccessException("Token has revoked.");
@@ -97,6 +97,16 @@ namespace AuthServicePlus.Persistence.Services
                 ExpiresIn = 3600,
                 TokenType = "Bearer"
             };
+
+        }
+
+        public async Task LogoutAsync(string refreshToken)
+        {
+            var user = await _userRepository.GetByRefreshTokenAsync(refreshToken, track: true);
+            if (user is null) return; // не возвращаем состояния
+
+            var ok = _userRepository.RevokeRefreshToken(user, refreshToken);
+            if (ok) await _userRepository.SaveChangesAsync();
 
         }
     }

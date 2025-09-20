@@ -12,5 +12,6 @@ namespace AuthServicePlus.Application.Interfaces
         Task RegisterAsync(RegisterUserDto dto);
         Task<AuthResponseDto> LoginAsync(LoginUserDto dto);
         Task<AuthResponseDto> RefreshAsync(string refreshTokem);
+        Task LogoutAsync(string refreshToken);
     }
 }

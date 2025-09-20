@@ -70,5 +70,12 @@ namespace AuthServicePlus.Api.Controllers
             return Ok(new { userId, name, role, expires });
 
         }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout([FromBody] RefreshRequestDto dto)
+        {
+            await _authService.LogoutAsync(dto.RefreshToken);
+            return Ok(); //В любом случае ок
+        }
     }
 }
