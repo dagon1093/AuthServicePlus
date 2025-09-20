@@ -2,7 +2,9 @@
 using AuthServicePlus.Application.Interfaces;
 using AuthServicePlus.Domain.Entities;
 using AuthServicePlus.Domain.Interfaces;
+using AuthServicePlus.Infrastructure.Options;
 using AuthServicePlus.Infrastructure.Services;
+using Microsoft.Extensions.Options;
 
 namespace AuthServicePlus.Persistence.Services
 {
@@ -11,13 +13,15 @@ namespace AuthServicePlus.Persistence.Services
         private readonly IUserRepository _userRepository;
         private readonly IPasswordHasher _passwordHasher;
         public readonly IJwtTokenGenerator _jwtTokenGenerator;
+        private readonly JwtOptions _jwtOptions;
 
 
-        public AuthService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtTokenGenerator jwtTokenGenerator)
+        public AuthService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtTokenGenerator jwtTokenGenerator, IOptions<JwtOptions> jwtOptions)
         {
             _userRepository = userRepository;
             _passwordHasher = passwordHasher;
             _jwtTokenGenerator = jwtTokenGenerator;
+            _jwtOptions = jwtOptions.Value;
         }
 
         public async Task RegisterAsync(RegisterUserDto dto)
@@ -54,7 +58,7 @@ namespace AuthServicePlus.Persistence.Services
             var accessTtlSeconds = 3600; //todo заменить на реальное значение из конфигурации
 
             // создать refresh
-            var refresh = RefreshTokenFactory.Create(user.Id, TimeSpan.FromDays(7));
+            var refresh = RefreshTokenFactory.Create(user.Id, TimeSpan.FromDays(_jwtOptions.RefreshTokenDays));
             user.RefreshTokens.Add(refresh);
 
             await _userRepository.UpdateUserAsync(user);
