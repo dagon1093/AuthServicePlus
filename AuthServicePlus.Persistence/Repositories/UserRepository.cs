@@ -40,7 +40,7 @@ namespace AuthServicePlus.Persistence.Repositories
             return await _context.Users.SingleOrDefaultAsync(u => u.Id == userId);
         }
 
-        public async Task<User?> GetByRefreshToken(string refreshToken, bool track = true)
+        public async Task<User?> GetByRefreshTokenAsync(string refreshToken, bool track = true)
         {
             var rt = await _context.RefreshTokens
                 .Include(t => t.User)
