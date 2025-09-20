@@ -77,5 +77,15 @@ namespace AuthServicePlus.Api.Controllers
             await _authService.LogoutAsync(dto.RefreshToken);
             return Ok(); //В любом случае ок
         }
+
+        [Authorize]
+        [HttpPost("logout-all")]
+        public async Task<IActionResult> LogoutAll()
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            await _authService.LogoutAllAsync(userId);
+            return Ok();
+        }
     }
 }

@@ -109,5 +109,11 @@ namespace AuthServicePlus.Persistence.Services
             if (ok) await _userRepository.SaveChangesAsync();
 
         }
+
+        public async Task LogoutAllAsync(int userId)
+        {
+            await _userRepository.RevokeAllRefreshTokensAsync(userId);
+            await _userRepository.SaveChangesAsync();
+        }
     }
 }

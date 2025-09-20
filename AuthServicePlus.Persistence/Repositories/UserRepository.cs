@@ -35,9 +35,11 @@ namespace AuthServicePlus.Persistence.Repositories
         }
         // добавим по мере необходимости другие методы
 
-        public async Task<User?> GetByUserId(int userId)
+        public async Task<User?> GetByUserIdAsync(int userId)
         {
-            return await _context.Users.SingleOrDefaultAsync(u => u.Id == userId);
+            var q = _context.Users.Include(u => u.RefreshTokens.Where(rt => rt.RevokedAt == null)).AsNoTracking();
+
+            return await q.FirstOrDefaultAsync(u => u.Id == userId);
         }
 
         public async Task<User?> GetByRefreshTokenAsync(string refreshToken, bool track = true)
@@ -64,6 +66,13 @@ namespace AuthServicePlus.Persistence.Repositories
         
             rt.RevokedAt = DateTime.UtcNow;
             return true;
+        }
+
+        public Task<int> RevokeAllRefreshTokensAsync(int userId)
+        {
+            return _context.RefreshTokens
+                .Where(t => t.UserId == userId && t.RevokedAt == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, _ => DateTime.UtcNow));
         }
 
         public Task SaveChangesAsync() => _context.SaveChangesAsync();
