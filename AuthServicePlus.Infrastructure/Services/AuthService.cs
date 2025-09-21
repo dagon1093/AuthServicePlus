@@ -6,7 +6,7 @@ using AuthServicePlus.Infrastructure.Options;
 using AuthServicePlus.Infrastructure.Services;
 using Microsoft.Extensions.Options;
 
-namespace AuthServicePlus.Persistence.Services
+namespace AuthServicePlus.Infrastructure.Services
 {
     public class AuthService : IAuthService
     {
@@ -55,7 +55,7 @@ namespace AuthServicePlus.Persistence.Services
 
             // создать access
             var access = _jwtTokenGenerator.GenerateToken(user);
-            var accessTtlSeconds = 3600; //todo заменить на реальное значение из конфигурации
+            var accessTtlSeconds = (int)TimeSpan.FromMinutes(_jwtOptions.AccessTokenMinutes).TotalSeconds;
 
             // создать refresh
             var refresh = RefreshTokenFactory.Create(user.Id, TimeSpan.FromDays(_jwtOptions.RefreshTokenDays));
@@ -84,17 +84,18 @@ namespace AuthServicePlus.Persistence.Services
 
             //ротация
             _userRepository.RevokeRefreshToken(user, refreshToken);
-            var newRt = RefreshTokenFactory.Create(user.Id, TimeSpan.FromDays(7));
+            var newRt = RefreshTokenFactory.Create(user.Id, TimeSpan.FromDays(_jwtOptions.RefreshTokenDays));
             _userRepository.AddRefreshToken(user,newRt);
 
             var newAccess = _jwtTokenGenerator.GenerateToken(user);
+            var accessTtlSeconds = (int)TimeSpan.FromMinutes(_jwtOptions.AccessTokenMinutes).TotalSeconds;
             await _userRepository.SaveChangesAsync();
 
             return new AuthResponseDto
             {
                 AccessToken = newAccess,
                 RefreshToken = newRt.Token,
-                ExpiresIn = 3600,
+                ExpiresIn = accessTtlSeconds,
                 TokenType = "Bearer"
             };
 

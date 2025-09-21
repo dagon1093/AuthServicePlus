@@ -19,7 +19,7 @@ namespace AuthServicePlus.Persistence.Repositories
         {
             var query = _context.Users.Include(u => u.RefreshTokens).AsQueryable();
             if (!track) query = query.AsNoTracking();
-            return await _context.Users.SingleOrDefaultAsync(u => u.Username == username);
+            return await query.SingleOrDefaultAsync(u => u.Username == username);
         }
 
         public async Task AddUserAsync(User user)
@@ -61,7 +61,7 @@ namespace AuthServicePlus.Persistence.Repositories
         public bool RevokeRefreshToken(User user, string token)
         {
             var rt = user.RefreshTokens.FirstOrDefault(t => t.Token == token);
-            if (rt != null || rt.RevokedAt != null)
+            if (rt == null || rt.RevokedAt != null)
                 return false;
         
             rt.RevokedAt = DateTime.UtcNow;
