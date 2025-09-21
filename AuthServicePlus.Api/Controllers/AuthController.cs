@@ -87,5 +87,17 @@ namespace AuthServicePlus.Api.Controllers
             await _authService.LogoutAllAsync(userId);
             return Ok();
         }
+
+        [Authorize]
+        [HttpGet("sessions")]
+        public async Task<IActionResult> GetSessions()
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var sessions = await _authService.GetSessionsAsync(userId);
+
+            return Ok(sessions);
+        }
+
+
     }
 }
