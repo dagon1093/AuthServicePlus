@@ -114,7 +114,7 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtAudience,
         RoleClaimType = ClaimTypes.Role,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-        ClockSkew = TimeSpan.FromSeconds(30) // чуть-чуть дрейфа часов
+        ClockSkew = TimeSpan.FromSeconds(30) 
     };
     options.Events = new JwtBearerEvents
     {
