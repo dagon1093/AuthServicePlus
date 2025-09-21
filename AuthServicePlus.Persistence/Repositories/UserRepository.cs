@@ -61,9 +61,9 @@ namespace AuthServicePlus.Persistence.Repositories
         public bool RevokeRefreshToken(User user, string token)
         {
             var rt = user.RefreshTokens.FirstOrDefault(t => t.Token == token);
-            if (rt != null || rt.RevokedAt != null)
+            if (rt == null || rt.RevokedAt != null)
                 return false;
-        
+
             rt.RevokedAt = DateTime.UtcNow;
             return true;
         }
