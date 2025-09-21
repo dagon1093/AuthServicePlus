@@ -75,6 +75,13 @@ namespace AuthServicePlus.Persistence.Repositories
                 .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, _ => DateTime.UtcNow));
         }
 
+        public async Task<User?> GetByIdWithTokensAsync(int id)
+        {
+            return await _context.Users
+                .Include(u => u.RefreshTokens)
+                .FirstOrDefaultAsync(u => u.Id == id);
+        }
+
         public Task SaveChangesAsync() => _context.SaveChangesAsync();
 
     }

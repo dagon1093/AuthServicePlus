@@ -14,5 +14,6 @@ namespace AuthServicePlus.Application.Interfaces
         Task<AuthResponseDto> RefreshAsync(string refreshTokem);
         Task LogoutAsync(string refreshToken);
         Task LogoutAllAsync(int userId);
+        Task<IEnumerable<SessionDto>> GetSessionsAsync(int userId);
     }
 }

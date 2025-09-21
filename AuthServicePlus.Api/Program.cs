@@ -1,3 +1,4 @@
+using AuthServicePlus.Api.Extensions;
 using AuthServicePlus.Application.Interfaces;
 using AuthServicePlus.Domain.Interfaces;
 using AuthServicePlus.Infrastructure.Options;
@@ -15,6 +16,7 @@ using System.Text;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 
 var cs = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -156,6 +158,7 @@ builder.Services.AddAuthorization();
 
 
 var app = builder.Build();
+app.UseExceptionHandling();
 
 if (app.Environment.IsDevelopment())
 {

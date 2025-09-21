@@ -115,5 +115,20 @@ namespace AuthServicePlus.Persistence.Services
             await _userRepository.RevokeAllRefreshTokensAsync(userId);
             await _userRepository.SaveChangesAsync();
         }
+
+        public async Task<IEnumerable<SessionDto>> GetSessionsAsync(int userId)
+        {
+            var user = await _userRepository.GetByIdWithTokensAsync(userId);
+            if (user == null ) return Enumerable.Empty<SessionDto>();
+
+            return user.RefreshTokens.Select(rt => new SessionDto
+            {
+                Id = rt.Id,
+                Token = rt.Token,
+                CreatedAt = rt.CreatedAt,
+                Expiration = rt.Expiration,
+                RevokedAt = rt.RevokedAt
+            });
+        }
     }
 }
