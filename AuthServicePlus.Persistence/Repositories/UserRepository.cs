@@ -19,7 +19,7 @@ namespace AuthServicePlus.Persistence.Repositories
         {
             var query = _context.Users.Include(u => u.RefreshTokens).AsQueryable();
             if (!track) query = query.AsNoTracking();
-            return await _context.Users.SingleOrDefaultAsync(u => u.Username == username);
+            return await query.SingleOrDefaultAsync(u => u.Username == username);
         }
 
         public async Task AddUserAsync(User user)

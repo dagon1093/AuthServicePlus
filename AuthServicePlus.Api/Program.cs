@@ -6,7 +6,6 @@ using AuthServicePlus.Infrastructure.Options;
 using AuthServicePlus.Infrastructure.Services;
 using AuthServicePlus.Persistence.Context;
 using AuthServicePlus.Persistence.Repositories;
-using AuthServicePlus.Persistence.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -61,10 +60,10 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "AuthServicePlus API", Version = "v1" });
 
-    // 1) Описание схемы Bearer
+    // 1) ГЋГЇГЁГ±Г Г­ГЁГҐ Г±ГµГҐГ¬Г» Bearer
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "Вставь только JWT (без 'Bearer '), затем нажми Authorize.",
+        Description = "Г‚Г±ГІГ ГўГј ГІГ®Г«ГјГЄГ® JWT (ГЎГҐГ§ 'Bearer '), Г§Г ГІГҐГ¬ Г­Г Г¦Г¬ГЁ Authorize.",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
@@ -72,7 +71,7 @@ builder.Services.AddSwaggerGen(c =>
         BearerFormat = "JWT"
     });
 
-    // 2) Глобально требуем Bearer-схему (через Reference)
+    // 2) ГѓГ«Г®ГЎГ Г«ГјГ­Г® ГІГ°ГҐГЎГіГҐГ¬ Bearer-Г±ГµГҐГ¬Гі (Г·ГҐГ°ГҐГ§ Reference)
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -105,7 +104,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false; // true в проде за HTTPS
+    options.RequireHttpsMetadata = false; // true Гў ГЇГ°Г®Г¤ГҐ Г§Г  HTTPS
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -123,7 +122,7 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = ctx =>
         {
-            // Посмотрим, что реально пришло в заголовке
+            // ГЏГ®Г±Г¬Г®ГІГ°ГЁГ¬, Г·ГІГ® Г°ГҐГ Г«ГјГ­Г® ГЇГ°ГЁГёГ«Г® Гў Г§Г ГЈГ®Г«Г®ГўГЄГҐ
             var logger = ctx.HttpContext.RequestServices
                 .GetRequiredService<ILoggerFactory>()
                 .CreateLogger("JWT");
