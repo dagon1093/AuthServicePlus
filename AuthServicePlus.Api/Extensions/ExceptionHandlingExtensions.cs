@@ -1,4 +1,6 @@
-﻿namespace AuthServicePlus.Api.Extensions
+﻿using AuthServicePlus.Api.Middleware;
+
+namespace AuthServicePlus.Api.Extensions
 {
     public static class ExceptionHandlingExtensions
     {

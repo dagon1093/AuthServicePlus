@@ -9,7 +9,6 @@ namespace AuthServicePlus.Application.DTOs
     public class SessionDto
     {
         public int Id { get; set; }
-        public string Token { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
         public DateTime Expiration { get; set; }
         public DateTime? RevokedAt { get; set; }

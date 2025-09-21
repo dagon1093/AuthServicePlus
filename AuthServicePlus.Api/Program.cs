@@ -1,4 +1,5 @@
 using AuthServicePlus.Api.Extensions;
+using AuthServicePlus.Api.Middleware;
 using AuthServicePlus.Application.Interfaces;
 using AuthServicePlus.Domain.Interfaces;
 using AuthServicePlus.Infrastructure.Options;

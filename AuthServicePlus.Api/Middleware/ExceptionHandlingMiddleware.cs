@@ -2,7 +2,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AuthServicePlus.Api
+namespace AuthServicePlus.Api.Middleware
 
 {
     public class ExceptionHandlingMiddleware

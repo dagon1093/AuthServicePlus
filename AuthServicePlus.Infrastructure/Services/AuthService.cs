@@ -124,7 +124,6 @@ namespace AuthServicePlus.Persistence.Services
             return user.RefreshTokens.Select(rt => new SessionDto
             {
                 Id = rt.Id,
-                Token = rt.Token,
                 CreatedAt = rt.CreatedAt,
                 Expiration = rt.Expiration,
                 RevokedAt = rt.RevokedAt
