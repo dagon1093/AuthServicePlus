@@ -122,7 +122,7 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = ctx =>
         {
-            // Ïîñìîòðèì, ÷òî ðåàëüíî ïðèøëî â çàãîëîâêå
+            
             var logger = ctx.HttpContext.RequestServices
                 .GetRequiredService<ILoggerFactory>()
                 .CreateLogger("JWT");

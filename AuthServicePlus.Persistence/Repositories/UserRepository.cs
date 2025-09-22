@@ -82,6 +82,14 @@ namespace AuthServicePlus.Persistence.Repositories
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
 
+        public async Task<RefreshToken?> GetRefreshTokenForUserAsync(int userId, int tokenId, bool track = true)
+        {
+            var q = _context.RefreshTokens.Where(t => t.Id == tokenId && t.UserId == userId);
+            if ( !track ) q = q.AsNoTracking();
+
+            return await q.FirstOrDefaultAsync();
+        }
+
         public Task SaveChangesAsync() => _context.SaveChangesAsync();
 
     }

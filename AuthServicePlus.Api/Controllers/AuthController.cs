@@ -98,6 +98,18 @@ namespace AuthServicePlus.Api.Controllers
             return Ok(sessions);
         }
 
+        [Authorize]
+        [HttpDelete("session/{id:int}")]
+        public async Task<IActionResult> RevokeSession([FromRoute] int id)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
+
+            var ok = await _authService.RevokeSessionAsync(userId, id);
+            if(!ok) return NotFound(new { error = "Session not found"} );
+            return Ok(ok);
+        }
+
 
     }
 }
