@@ -133,7 +133,7 @@ namespace AuthServicePlus.Infrastructure.Services
 
         public async Task<bool> RevokeSessionAsync(int userId, int tokenId)
         {
-            var token = await _userRepository.GetRefreshForUserAsync(userId, tokenId, track: true);
+            var token = await _userRepository.GetRefreshTokenForUserAsync(userId, tokenId, track: true);
             if (token is null) return false;
 
             if (token.RevokedAt != null) return true;
