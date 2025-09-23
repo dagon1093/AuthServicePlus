@@ -19,5 +19,6 @@ namespace AuthServicePlus.Domain.Interfaces
         Task SaveChangesAsync();
         Task<int> RevokeAllRefreshTokensAsync(int userid);
         Task<User?> GetByIdWithTokensAsync(int id);
+        Task<RefreshToken?> GetRefreshTokenForUserAsync(int userId, int tokenId, bool track = true);
     }
 }

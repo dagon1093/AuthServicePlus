@@ -130,5 +130,18 @@ namespace AuthServicePlus.Infrastructure.Services
                 RevokedAt = rt.RevokedAt
             });
         }
+
+        public async Task<bool> RevokeSessionAsync(int userId, int tokenId)
+        {
+            var token = await _userRepository.GetRefreshTokenForUserAsync(userId, tokenId, track: true);
+            if (token is null) return false;
+
+            if (token.RevokedAt != null) return true;
+
+            token.RevokedAt = DateTime.UtcNow;
+            await _userRepository.SaveChangesAsync();
+            return true;
+
+        }
     }
 }
