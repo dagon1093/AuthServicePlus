@@ -99,7 +99,7 @@ namespace AuthServicePlus.Api.Controllers
         }
 
         [Authorize]
-        [HttpDelete("session/{id:int}")]
+        [HttpDelete("sessions/{id:int}")]
         public async Task<IActionResult> RevokeSession([FromRoute] int id)
         {
             var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
