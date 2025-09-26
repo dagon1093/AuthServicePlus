@@ -20,5 +20,6 @@ namespace AuthServicePlus.Domain.Interfaces
         Task<int> RevokeAllRefreshTokensAsync(int userid);
         Task<User?> GetByIdWithTokensAsync(int id);
         Task<RefreshToken?> GetRefreshTokenForUserAsync(int userId, int tokenId, bool track = true);
+        Task<RefreshToken?> GetRefreshTokenByHashAsync(string tokenHash, bool includeUser = false, bool track = true);
     }
 }

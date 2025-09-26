@@ -90,6 +90,15 @@ namespace AuthServicePlus.Persistence.Repositories
             return await q.FirstOrDefaultAsync();
         }
 
+        public async Task<RefreshToken?> GetRefreshTokenByHashAsync(string tokenHash, bool includeUser = false, bool track = true)
+        {
+            IQueryable<RefreshToken> q = _context.RefreshTokens;
+            if ( includeUser ) q = q.Include(t => t.UserId);
+            if (!track) q = q.AsNoTracking();
+
+            return await q.FirstOrDefaultAsync(t => t.TokenHash == tokenHash);
+        }
+
         public Task SaveChangesAsync() => _context.SaveChangesAsync();
 
     }

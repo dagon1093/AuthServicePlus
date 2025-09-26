@@ -6,6 +6,7 @@ namespace AuthServicePlus.Infrastructure.Services
 {
     public class RefreshTokenFactory
     {
+        [Obsolete("Токен генерится через RefreshTokenHasher")]
         public static RefreshToken Create(int userId, TimeSpan lifetime)
         {
             // криптослучайный токен
