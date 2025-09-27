@@ -46,11 +46,11 @@ namespace AuthServicePlus.Persistence.Repositories
         {
             var rt = await _context.RefreshTokens
                 .Include(t => t.User)
-                .FirstOrDefaultAsync(t => t.Token == refreshToken);
+                .FirstOrDefaultAsync(t => t.TokenHash == refreshToken);
 
             if (rt == null) return null;
             if (!track) _context.Entry(rt.User).State = EntityState.Detached;
-            return await _context.Users.SingleOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == refreshToken));
+            return await _context.Users.SingleOrDefaultAsync(u => u.RefreshTokens.Any(t => t.TokenHash == refreshToken));
         }
 
         public void AddRefreshToken(User user, RefreshToken token)
@@ -60,7 +60,7 @@ namespace AuthServicePlus.Persistence.Repositories
 
         public bool RevokeRefreshToken(User user, string token)
         {
-            var rt = user.RefreshTokens.FirstOrDefault(t => t.Token == token);
+            var rt = user.RefreshTokens.FirstOrDefault(t => t.TokenHash == token);
             if (rt == null || rt.RevokedAt != null)
                 return false;
 
