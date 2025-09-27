@@ -20,7 +20,6 @@ namespace AuthServicePlus.Persistence.Context
                 b.HasKey(rt => rt.Id);
 
                 b.Property(rt => rt.TokenHash).IsRequired().HasMaxLength(128);
-                b.Property(rt => rt.Salt).IsRequired().HasMaxLength(64);
 
                 b.HasIndex(rt => rt.TokenHash).IsUnique();
 
