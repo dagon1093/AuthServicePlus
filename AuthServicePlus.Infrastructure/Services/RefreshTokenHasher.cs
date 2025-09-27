@@ -13,8 +13,13 @@ namespace AuthServicePlus.Infrastructure.Services
 {
     public class RefreshTokenHasher: IRefreshTokenHasher
     {
- 
-        private static readonly IOptions<JwtOptions> _options;
+
+        private readonly JwtOptions _jwtOptions;
+
+        public RefreshTokenHasher(IOptions<JwtOptions> jwtOptions)
+        {
+            _jwtOptions = jwtOptions.Value;
+        }
 
         private static string GenerateRawToken()
         {
@@ -26,7 +31,7 @@ namespace AuthServicePlus.Infrastructure.Services
         private static string HmacSha256(string input)
         {
             
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_options.Value.Key));
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_jwtOptions.Key));
             var bytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(input));
 
             var sb = new StringBuilder(bytes.Length * 2);
@@ -53,7 +58,7 @@ namespace AuthServicePlus.Infrastructure.Services
 
         public string ComputeHash(string rawToken)
         {
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_options.Value.Key));
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_jwtOptions.Key));
             var bytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(rawToken));
 
             var sb = new StringBuilder(bytes.Length * 2);
