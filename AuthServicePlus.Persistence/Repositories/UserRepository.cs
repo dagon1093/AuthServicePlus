@@ -93,7 +93,7 @@ namespace AuthServicePlus.Persistence.Repositories
         public async Task<RefreshToken?> GetRefreshTokenByHashAsync(string tokenHash, bool includeUser = false, bool track = true)
         {
             IQueryable<RefreshToken> q = _context.RefreshTokens;
-            if ( includeUser ) q = q.Include(t => t.UserId);
+            if ( includeUser ) q = q.Include(t => t.User);
             if (!track) q = q.AsNoTracking();
 
             return await q.FirstOrDefaultAsync(t => t.TokenHash == tokenHash);
