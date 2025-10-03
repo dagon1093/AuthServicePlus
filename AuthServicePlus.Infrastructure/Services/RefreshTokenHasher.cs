@@ -45,19 +45,51 @@ namespace AuthServicePlus.Infrastructure.Services
 
         public string ComputeHash(string rawToken)
         {
+            if (rawToken is null)
+            {
+                throw new ArgumentNullException(nameof(rawToken));
+            }
+
             using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_jwtOptions.Key));
             var bytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(rawToken));
-
-            var sb = new StringBuilder(bytes.Length * 2);
-            foreach (var b in bytes)
-            {
-                sb.Append(b.ToString("x2"));
-            }
-            return sb.ToString();
+  
+            return Convert.ToHexString(bytes).ToLowerInvariant();
         }
 
-        public bool Verify(string rawToken, string storedHash) 
-            => string.Equals(ComputeHash(rawToken), storedHash, StringComparison.Ordinal);
+        public bool Verify(string rawToken, string storedHash)
+        {
+            if ( rawToken is null )
+            {
+                throw new ArgumentNullException(nameof(rawToken));
+            }
+
+            if ( storedHash is null )
+            {
+                return false;
+            }
+
+            var computed = ComputeHash(rawToken);
+
+            byte[] computeBytes = Convert.FromHexString(storedHash);
+            byte[] storedBytes;
+
+            try
+            {
+                storedBytes = Convert.FromHexString(storedHash);
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+
+            if (storedBytes.Length != computeBytes.Length)
+            {
+                return false;
+            }
+
+            return CryptographicOperations.FixedTimeEquals(computeBytes, storedBytes);
+
+        }
 
     }
 

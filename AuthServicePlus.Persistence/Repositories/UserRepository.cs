@@ -44,13 +44,18 @@ namespace AuthServicePlus.Persistence.Repositories
 
         public async Task<User?> GetByRefreshTokenAsync(string refreshTokenHash, bool track = true)
         {
-            var rt = await _context.RefreshTokens
+            IQueryable<RefreshToken> query = _context.RefreshTokens
                 .Include(t => t.User)
-                .FirstOrDefaultAsync(t => t.TokenHash == refreshTokenHash);
+                .ThenInclude(u => u.RefreshTokens);
 
-            if (rt == null) return null;
-            if (!track) _context.Entry(rt.User).State = EntityState.Detached;
-            return await _context.Users.SingleOrDefaultAsync(u => u.RefreshTokens.Any(t => t.TokenHash == refreshTokenHash));
+
+            if (!track)
+            {
+                query = query.AsNoTracking();
+            }
+
+            var rt = await query.FirstOrDefaultAsync(t => t.TokenHash == refreshTokenHash);
+            return rt?.User;
         }
 
         public void AddRefreshToken(User user, RefreshToken token)
