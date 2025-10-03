@@ -110,10 +110,11 @@ namespace AuthServicePlus.Infrastructure.Services
 
         public async Task LogoutAsync(string refreshToken)
         {
-            var user = await _userRepository.GetByRefreshTokenAsync(refreshToken, track: true);
+            var refreshTokenHash = _refreshTokenHasher.ComputeHash(refreshToken);
+            var user = await _userRepository.GetByRefreshTokenAsync(refreshTokenHash, track: true);
             if (user is null) return; // не возвращаем состояния
 
-            var ok = _userRepository.RevokeRefreshToken(user, refreshToken);
+            var ok = _userRepository.RevokeRefreshToken(user, refreshTokenHash);
             if (ok) await _userRepository.SaveChangesAsync();
 
         }

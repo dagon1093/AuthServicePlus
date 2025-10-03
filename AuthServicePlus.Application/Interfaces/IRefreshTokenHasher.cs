@@ -11,7 +11,7 @@ namespace AuthServicePlus.Application.Interfaces
     {
         (string rawToken, RefreshToken entity) Create(int userId, TimeSpan lifetime);
 
-        bool Verify(string rawToken, string  salt, string storedHash );
+        bool Verify(string rawToken,  string storedHash );
 
         string ComputeHash(string rawToken);
     }
