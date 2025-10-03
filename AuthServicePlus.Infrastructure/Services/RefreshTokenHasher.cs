@@ -70,7 +70,7 @@ namespace AuthServicePlus.Infrastructure.Services
 
             var computed = ComputeHash(rawToken);
 
-            byte[] computeBytes = Convert.FromHexString(storedHash);
+            byte[] computeBytes = Convert.FromHexString(computed);
             byte[] storedBytes;
 
             try

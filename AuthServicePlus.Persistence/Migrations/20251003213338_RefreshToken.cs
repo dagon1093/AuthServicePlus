@@ -24,7 +24,7 @@ namespace AuthServicePlus.Persistence.Migrations
                 type: "character varying(128)",
                 maxLength: 128,
                 nullable: false,
-                defaultValue: "");
+                defaultValue: null);
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_TokenHash",
