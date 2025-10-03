@@ -42,15 +42,20 @@ namespace AuthServicePlus.Persistence.Repositories
             return await q.FirstOrDefaultAsync(u => u.Id == userId);
         }
 
-        public async Task<User?> GetByRefreshTokenAsync(string refreshToken, bool track = true)
+        public async Task<User?> GetByRefreshTokenAsync(string refreshTokenHash, bool track = true)
         {
-            var rt = await _context.RefreshTokens
+            IQueryable<RefreshToken> query = _context.RefreshTokens
                 .Include(t => t.User)
-                .FirstOrDefaultAsync(t => t.Token == refreshToken);
+                .ThenInclude(u => u.RefreshTokens);
 
-            if (rt == null) return null;
-            if (!track) _context.Entry(rt.User).State = EntityState.Detached;
-            return await _context.Users.SingleOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == refreshToken));
+
+            if (!track)
+            {
+                query = query.AsNoTracking();
+            }
+
+            var rt = await query.FirstOrDefaultAsync(t => t.TokenHash == refreshTokenHash);
+            return rt?.User;
         }
 
         public void AddRefreshToken(User user, RefreshToken token)
@@ -58,9 +63,9 @@ namespace AuthServicePlus.Persistence.Repositories
             user.RefreshTokens.Add(token);
         }
 
-        public bool RevokeRefreshToken(User user, string token)
+        public bool RevokeRefreshToken(User user, string tokenHash)
         {
-            var rt = user.RefreshTokens.FirstOrDefault(t => t.Token == token);
+            var rt = user.RefreshTokens.FirstOrDefault(t => t.TokenHash == tokenHash);
             if (rt == null || rt.RevokedAt != null)
                 return false;
 
@@ -88,6 +93,15 @@ namespace AuthServicePlus.Persistence.Repositories
             if ( !track ) q = q.AsNoTracking();
 
             return await q.FirstOrDefaultAsync();
+        }
+
+        public async Task<RefreshToken?> GetRefreshTokenByHashAsync(string tokenHash, bool includeUser = false, bool track = true)
+        {
+            IQueryable<RefreshToken> q = _context.RefreshTokens;
+            if ( includeUser ) q = q.Include(t => t.User);
+            if (!track) q = q.AsNoTracking();
+
+            return await q.FirstOrDefaultAsync(t => t.TokenHash == tokenHash);
         }
 
         public Task SaveChangesAsync() => _context.SaveChangesAsync();

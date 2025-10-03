@@ -13,12 +13,13 @@ namespace AuthServicePlus.Domain.Interfaces
         Task AddUserAsync(User user);
         Task UpdateUserAsync(User user);
         Task<User?> GetByUserIdAsync(int userId);
-        Task<User?> GetByRefreshTokenAsync(string refreshToken, bool track = true);
+        Task<User?> GetByRefreshTokenAsync(string refreshTokenHash, bool track = true);
         void AddRefreshToken(User user, RefreshToken token);
-        bool RevokeRefreshToken(User user, string refreshToken);
+        bool RevokeRefreshToken(User user, string refreshTokenHash);
         Task SaveChangesAsync();
         Task<int> RevokeAllRefreshTokensAsync(int userid);
         Task<User?> GetByIdWithTokensAsync(int id);
         Task<RefreshToken?> GetRefreshTokenForUserAsync(int userId, int tokenId, bool track = true);
+        Task<RefreshToken?> GetRefreshTokenByHashAsync(string tokenHash, bool includeUser = false, bool track = true);
     }
 }

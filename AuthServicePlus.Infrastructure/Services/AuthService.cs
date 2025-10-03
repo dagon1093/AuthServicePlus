@@ -12,16 +12,19 @@ namespace AuthServicePlus.Infrastructure.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly IPasswordHasher _passwordHasher;
+        private readonly IRefreshTokenHasher _refreshTokenHasher;
         public readonly IJwtTokenGenerator _jwtTokenGenerator;
         private readonly JwtOptions _jwtOptions;
 
 
-        public AuthService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtTokenGenerator jwtTokenGenerator, IOptions<JwtOptions> jwtOptions)
+
+        public AuthService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtTokenGenerator jwtTokenGenerator, IOptions<JwtOptions> jwtOptions, IRefreshTokenHasher refreshTokenHasher)
         {
             _userRepository = userRepository;
             _passwordHasher = passwordHasher;
             _jwtTokenGenerator = jwtTokenGenerator;
             _jwtOptions = jwtOptions.Value;
+            _refreshTokenHasher = refreshTokenHasher;
         }
 
         public async Task RegisterAsync(RegisterUserDto dto)
@@ -58,8 +61,8 @@ namespace AuthServicePlus.Infrastructure.Services
             var accessTtlSeconds = (int)TimeSpan.FromMinutes(_jwtOptions.AccessTokenMinutes).TotalSeconds;
 
             // создать refresh
-            var refresh = RefreshTokenFactory.Create(user.Id, TimeSpan.FromDays(_jwtOptions.RefreshTokenDays));
-            user.RefreshTokens.Add(refresh);
+            var (rawRefresh, refreshEntity) = _refreshTokenHasher.Create(user.Id, TimeSpan.FromDays(_jwtOptions.RefreshTokenDays));
+            user.RefreshTokens.Add(refreshEntity);
 
             await _userRepository.UpdateUserAsync(user);
 
@@ -67,46 +70,51 @@ namespace AuthServicePlus.Infrastructure.Services
             return new AuthResponseDto
             {
                 AccessToken = access,
-                RefreshToken = refresh.Token,
+                RefreshToken = rawRefresh,
                 ExpiresIn = accessTtlSeconds,
                 TokenType = "Bearer"
             };
 
         }
 
-        public async Task<AuthResponseDto> RefreshAsync(string refreshToken)
+        public async Task<AuthResponseDto> RefreshAsync(string rawRefresh)
         {
-            var user = await _userRepository.GetByRefreshTokenAsync(refreshToken) ?? throw new UnauthorizedAccessException("Invalid refresh token.");
 
-            var rt = user.RefreshTokens.First(t => t.Token == refreshToken);
-            if (rt.RevokedAt != null) throw new UnauthorizedAccessException("Token has revoked.");
+            var hash = _refreshTokenHasher.ComputeHash(rawRefresh);
+            var rt = await _userRepository.GetRefreshTokenByHashAsync(hash, includeUser: true, track: true);
+
+            if (rt is null) throw new UnauthorizedAccessException("Invalid refresh token.");
+            if (rt.RevokedAt != null) throw new UnauthorizedAccessException("Token was revoked.");
             if (rt.Expiration <= DateTime.UtcNow) throw new UnauthorizedAccessException("Token expired.");
 
-            //ротация
-            _userRepository.RevokeRefreshToken(user, refreshToken);
-            var newRt = RefreshTokenFactory.Create(user.Id, TimeSpan.FromDays(_jwtOptions.RefreshTokenDays));
-            _userRepository.AddRefreshToken(user,newRt);
+            var newAccess = _jwtTokenGenerator.GenerateToken(rt.User);
 
-            var newAccess = _jwtTokenGenerator.GenerateToken(user);
-            var accessTtlSeconds = (int)TimeSpan.FromMinutes(_jwtOptions.AccessTokenMinutes).TotalSeconds;
+            //Ротация
+            rt.RevokedAt = DateTime.UtcNow;
+            var (rawNew, newEntity) = _refreshTokenHasher.Create(rt.UserId, TimeSpan.FromDays(_jwtOptions.RefreshTokenDays));
+            rt.User.RefreshTokens.Add(newEntity);
+
             await _userRepository.SaveChangesAsync();
 
             return new AuthResponseDto
             {
                 AccessToken = newAccess,
-                RefreshToken = newRt.Token,
-                ExpiresIn = accessTtlSeconds,
+                RefreshToken = rawNew,
+                ExpiresIn = _jwtOptions.AccessTokenMinutes * 60,
                 TokenType = "Bearer"
             };
+
+
 
         }
 
         public async Task LogoutAsync(string refreshToken)
         {
-            var user = await _userRepository.GetByRefreshTokenAsync(refreshToken, track: true);
+            var refreshTokenHash = _refreshTokenHasher.ComputeHash(refreshToken);
+            var user = await _userRepository.GetByRefreshTokenAsync(refreshTokenHash, track: true);
             if (user is null) return; // не возвращаем состояния
 
-            var ok = _userRepository.RevokeRefreshToken(user, refreshToken);
+            var ok = _userRepository.RevokeRefreshToken(user, refreshTokenHash);
             if (ok) await _userRepository.SaveChangesAsync();
 
         }
