@@ -37,7 +37,9 @@ services:
       seq:
         condition: service_started
     environment:
-      ASPNETCORE_ENVIRONMENT: "Production"
+      Swagger__Enabled: "true"
+     # ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_ENVIRONMENT: "Development"
       ASPNETCORE_URLS: "http://0.0.0.0:8080"
       # Строка подключения в виде переменной:
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=AuthServicePlusDb;Username=postgres;Password=Rp_9i7g7;Include Error Detail=true;"
