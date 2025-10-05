@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: AuthServicePlus_db
+    environment:
+      POSTGRES_DB: AuthServicePlusDb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Rp_9i7g7
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d AuthServicePlusDb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  seq:
+    image: datalust/seq:latest
+    container_name: AuthServicePlus_seq
+    environment:
+      ACCEPT_EULA: "Y"
+    ports:
+      - "5341:80"
+
+  api:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: AuthServicePlus_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      seq:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://0.0.0.0:8080"
+      # Строка подключения в виде переменной:
+      ConnectionStrings__Default: "Host=postgres;Port=5432;Database=AuthServicePlusDb;Username=postgres;Password=Rp_9i7g7;Include Error Detail=true;"
+      # Настройка Serilog на Seq + Console
+      Serilog__Using__0: "Serilog.Sinks.Console"
+      Serilog__Using__1: "Serilog.Sinks.Seq"
+      Serilog__WriteTo__0__Name: "Console"
+      Serilog__WriteTo__1__Name: "Seq"
+      Serilog__WriteTo__1__Args__serverUrl: "http://seq:80"
+      Serilog__MinimumLevel__Default: "Information"
+      Serilog__MinimumLevel__Override__Microsoft: "Warning"
+      Serilog__MinimumLevel__Override__Microsoft.Hosting.Lifetime: "Information"
+      Serilog__Enrich__0: "FromLogContext"
+      Serilog__Enrich__1: "WithMachineName"
+      Serilog__Enrich__2: "WithThreadId"
+    ports:
+      - "8080:8080"
+    # Если есть миграции EF — можно запускать скриптом entrypoint’а, но лучший вариант — применять миграции в стартапе.
+volumes:
+  pgdata:

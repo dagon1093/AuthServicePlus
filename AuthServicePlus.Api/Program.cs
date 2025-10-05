@@ -7,6 +7,7 @@ using AuthServicePlus.Infrastructure.Services;
 using AuthServicePlus.Persistence.Context;
 using AuthServicePlus.Persistence.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -25,6 +26,11 @@ if (string.IsNullOrWhiteSpace(cs))
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(cs));
+
+// Program.cs
+builder.Services.AddHealthChecks()
+    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection"));
+
 
 // Add services to the container.
 
@@ -51,6 +57,7 @@ builder.Services.AddControllers()
             return new BadRequestObjectResult(problemDetails);
         };
     });
+
 
 
 //builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -159,6 +166,16 @@ builder.Services.AddAuthorization();
 
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await db.Database.MigrateAsync();
+}
+
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready");
 app.UseExceptionHandling();
 
 if (app.Environment.IsDevelopment())
