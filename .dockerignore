@@ -1,0 +1,17 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/*.user
+**/*.suo
+**/*.swp
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.pdb
+*.coverage
+*.coveragexml
+TestResults/
+.nuget/
+artifacts/
+*.DS_Store
