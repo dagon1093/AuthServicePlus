@@ -4,6 +4,7 @@ using AuthServicePlus.Domain.Entities;
 using AuthServicePlus.Domain.Interfaces;
 using AuthServicePlus.Infrastructure.Options;
 using AuthServicePlus.Infrastructure.Services;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace AuthServicePlus.Infrastructure.Services
@@ -15,16 +16,18 @@ namespace AuthServicePlus.Infrastructure.Services
         private readonly IRefreshTokenHasher _refreshTokenHasher;
         public readonly IJwtTokenGenerator _jwtTokenGenerator;
         private readonly JwtOptions _jwtOptions;
+        private readonly ILogger<AuthService> _logger;
 
 
 
-        public AuthService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtTokenGenerator jwtTokenGenerator, IOptions<JwtOptions> jwtOptions, IRefreshTokenHasher refreshTokenHasher)
+        public AuthService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtTokenGenerator jwtTokenGenerator, IOptions<JwtOptions> jwtOptions, IRefreshTokenHasher refreshTokenHasher, ILogger<AuthService> logger)
         {
             _userRepository = userRepository;
             _passwordHasher = passwordHasher;
             _jwtTokenGenerator = jwtTokenGenerator;
             _jwtOptions = jwtOptions.Value;
             _refreshTokenHasher = refreshTokenHasher;
+            _logger = logger;
         }
 
         public async Task RegisterAsync(RegisterUserDto dto)
@@ -48,10 +51,17 @@ namespace AuthServicePlus.Infrastructure.Services
 
         public async Task<AuthResponseDto> LoginAsync(LoginUserDto dto)
         {
+            _logger.LogDebug("Checking username: {Username}", dto.Username);
             var user = await _userRepository.GetByUsernameAsync(dto.Username);
 
-            if ( user == null || !_passwordHasher.Verify(dto.Password, user.PasswordHash))
+            if (user == null)
             {
+                _logger.LogWarning("Username: {username} not found", dto.Username);
+                throw new Exception("Пользователь не найден");
+            }
+            if (!_passwordHasher.Verify(dto.Password, user.PasswordHash))
+            {
+
                 throw new Exception("Неверный логин или пароль");
             }
 
@@ -79,8 +89,11 @@ namespace AuthServicePlus.Infrastructure.Services
 
         public async Task<AuthResponseDto> RefreshAsync(string rawRefresh)
         {
-
+            _logger.LogDebug("Attempt to compute hash for Refresh Token");
             var hash = _refreshTokenHasher.ComputeHash(rawRefresh);
+            _logger.LogDebug($"Hash successeful computed");
+
+            _logger.LogDebug($"Getting Token By Hash");
             var rt = await _userRepository.GetRefreshTokenByHashAsync(hash, includeUser: true, track: true);
 
             if (rt is null) throw new UnauthorizedAccessException("Invalid refresh token.");
@@ -94,6 +107,7 @@ namespace AuthServicePlus.Infrastructure.Services
             var (rawNew, newEntity) = _refreshTokenHasher.Create(rt.UserId, TimeSpan.FromDays(_jwtOptions.RefreshTokenDays));
             rt.User.RefreshTokens.Add(newEntity);
 
+            _logger.LogDebug("Сохранение изменений");
             await _userRepository.SaveChangesAsync();
 
             return new AuthResponseDto
@@ -114,9 +128,13 @@ namespace AuthServicePlus.Infrastructure.Services
             var user = await _userRepository.GetByRefreshTokenAsync(refreshTokenHash, track: true);
             if (user is null) return; // не возвращаем состояния
 
+            _logger.LogDebug($"Attempt to revoke Refresh Token");
             var ok = _userRepository.RevokeRefreshToken(user, refreshTokenHash);
-            if (ok) await _userRepository.SaveChangesAsync();
-
+            if (ok)
+            {
+                _logger.LogDebug($"Refresh Token revoked successfully");
+                await _userRepository.SaveChangesAsync();
+            }
         }
 
         public async Task LogoutAllAsync(int userId)

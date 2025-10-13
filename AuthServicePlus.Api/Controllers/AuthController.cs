@@ -10,11 +10,13 @@ namespace AuthServicePlus.Api.Controllers
     [Route("api/[controller]")] 
     public class AuthController: ControllerBase
     {
+        private readonly ILogger<AuthController> _logger;
         private readonly IAuthService _authService;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, ILogger<AuthController> logger)
         {
             _authService = authService;
+            _logger = logger;
         }
 
         [HttpPost("register")]
@@ -36,11 +38,14 @@ namespace AuthServicePlus.Api.Controllers
         {
             try
             {
+                _logger.LogInformation("Login attemt for {Username}", dto.Username);
                 var token = await _authService.LoginAsync(dto);
+                _logger.LogInformation("Login succeded for {Username}", dto.Username);
                 return Ok(token);
             }
             catch(Exception ex) 
             {
+                _logger.LogWarning("Login failed for {Username}", dto.Username);
                 return Unauthorized(new { error = ex.Message });
             }
         }

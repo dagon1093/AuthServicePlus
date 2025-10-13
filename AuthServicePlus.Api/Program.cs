@@ -1,5 +1,4 @@
 using AuthServicePlus.Api.Extensions;
-using AuthServicePlus.Api.Middleware;
 using AuthServicePlus.Application.Interfaces;
 using AuthServicePlus.Domain.Interfaces;
 using AuthServicePlus.Infrastructure.Options;
@@ -12,8 +11,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using System.Text;
+using Serilog;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -96,6 +97,8 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+
+
 // JWT
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
@@ -158,8 +161,13 @@ builder.Services.AddAuthentication(options =>
 });
 
 
-
-
+builder.Host.UseSerilog((context, configuration) =>
+{
+    configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console();
+});
 
 builder.Services.AddAuthorization();
 
