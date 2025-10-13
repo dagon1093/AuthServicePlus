@@ -89,11 +89,11 @@ namespace AuthServicePlus.Infrastructure.Services
 
         public async Task<AuthResponseDto> RefreshAsync(string rawRefresh)
         {
-            _logger.LogDebug($"Compute hash for refreshingToken: {rawRefresh}");
+            _logger.LogDebug("Attempt to compute hash for Refresh Token");
             var hash = _refreshTokenHasher.ComputeHash(rawRefresh);
-            _logger.LogDebug($"Hash computed: {hash}");
+            _logger.LogDebug($"Hash successeful computed");
 
-            _logger.LogDebug($"Получение токена по хэшу");
+            _logger.LogDebug($"Getting Token By Hash");
             var rt = await _userRepository.GetRefreshTokenByHashAsync(hash, includeUser: true, track: true);
 
             if (rt is null) throw new UnauthorizedAccessException("Invalid refresh token.");
@@ -128,11 +128,11 @@ namespace AuthServicePlus.Infrastructure.Services
             var user = await _userRepository.GetByRefreshTokenAsync(refreshTokenHash, track: true);
             if (user is null) return; // не возвращаем состояния
 
-            _logger.LogDebug($"Попытка отзыва токена: {refreshToken}");
+            _logger.LogDebug($"Attempt to revoke Refresh Token");
             var ok = _userRepository.RevokeRefreshToken(user, refreshTokenHash);
             if (ok)
             {
-                _logger.LogDebug($"Токен {refreshToken} успешно отозван");
+                _logger.LogDebug($"Refresh Token revoked successfully");
                 await _userRepository.SaveChangesAsync();
             }
         }
