@@ -2,6 +2,8 @@
 using AuthServicePlus.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using System.Linq;
 using System.Security.Claims;
 
 namespace AuthServicePlus.Api.Controllers
@@ -24,11 +26,14 @@ namespace AuthServicePlus.Api.Controllers
         {
             try
             {
+                _logger.LogInformation("Запрос регистрации для пользователя {Username}", dto.Username);
                 await _authService.RegisterAsync(dto);
+                _logger.LogInformation("Пользователь {Username} успешно зарегистрирован", dto.Username);
                 return Ok(new { message = "Пользователь успешно зарегестрирован" });
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Ошибка регистрации пользователя {Username}", dto.Username);
                 return BadRequest(new { error = ex.Message});
             }
         }
@@ -38,14 +43,14 @@ namespace AuthServicePlus.Api.Controllers
         {
             try
             {
-                _logger.LogInformation("Login attemt for {Username}", dto.Username);
+                _logger.LogInformation("Попытка входа для пользователя {Username}", dto.Username);
                 var token = await _authService.LoginAsync(dto);
-                _logger.LogInformation("Login succeded for {Username}", dto.Username);
+                _logger.LogInformation("Пользователь {Username} успешно вошёл", dto.Username);
                 return Ok(token);
             }
-            catch(Exception ex) 
+            catch(Exception ex)
             {
-                _logger.LogWarning("Login failed for {Username}", dto.Username);
+                _logger.LogWarning(ex, "Неуспешная попытка входа для пользователя {Username}", dto.Username);
                 return Unauthorized(new { error = ex.Message });
             }
         }
@@ -55,10 +60,14 @@ namespace AuthServicePlus.Api.Controllers
         {
             try
             {
-                return Ok(await _authService.RefreshAsync(dto.RefreshToken));
+                _logger.LogInformation("Попытка обновления токена");
+                var response = await _authService.RefreshAsync(dto.RefreshToken);
+                _logger.LogInformation("Токен успешно обновлён");
+                return Ok(response);
             }
             catch (UnauthorizedAccessException ex)
             {
+                _logger.LogWarning(ex, "Неуспешная попытка обновления токена");
                 return Unauthorized(new { error = ex.Message });
             }
         }
@@ -67,11 +76,13 @@ namespace AuthServicePlus.Api.Controllers
         [HttpGet("me")]
         public ActionResult<object> Me()
         {
+            _logger.LogInformation("Получение информации о текущем пользователе");
             var userId  = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
             var name = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name;
             var role = User.FindFirstValue(ClaimTypes.Role);
             var expires = User.FindFirst("exp")?.Value;
 
+            _logger.LogInformation("Информация о пользователе получена");
             return Ok(new { userId, name, role, expires });
 
         }
@@ -79,7 +90,9 @@ namespace AuthServicePlus.Api.Controllers
         [HttpPost("logout")]
         public async Task<IActionResult> Logout([FromBody] RefreshRequestDto dto)
         {
+            _logger.LogInformation("Выход пользователя с указанным refresh токеном");
             await _authService.LogoutAsync(dto.RefreshToken);
+            _logger.LogInformation("Refresh токен отозван");
             return Ok(); //В любом случае ок
         }
 
@@ -89,7 +102,9 @@ namespace AuthServicePlus.Api.Controllers
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
+            _logger.LogInformation("Выход пользователя {UserId} со всех сессий", userId);
             await _authService.LogoutAllAsync(userId);
+            _logger.LogInformation("Все сессии пользователя {UserId} завершены", userId);
             return Ok();
         }
 
@@ -98,7 +113,9 @@ namespace AuthServicePlus.Api.Controllers
         public async Task<IActionResult> GetSessions()
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var sessions = await _authService.GetSessionsAsync(userId);
+            _logger.LogInformation("Запрос списка сессий пользователя {UserId}", userId);
+            var sessions = (await _authService.GetSessionsAsync(userId)).ToList();
+            _logger.LogInformation("Получено {SessionsCount} сессий пользователя {UserId}", sessions.Count, userId);
 
             return Ok(sessions);
         }
@@ -110,8 +127,14 @@ namespace AuthServicePlus.Api.Controllers
             var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
+            _logger.LogInformation("Попытка отзыва сессии {SessionId} пользователем {UserId}", id, userId);
             var ok = await _authService.RevokeSessionAsync(userId, id);
-            if(!ok) return NotFound(new { error = "Session not found"} );
+            if(!ok)
+            {
+                _logger.LogWarning("Сессия {SessionId} для пользователя {UserId} не найдена", id, userId);
+                return NotFound(new { error = "Session not found"} );
+            }
+            _logger.LogInformation("Сессия {SessionId} для пользователя {UserId} отозвана", id, userId);
             return Ok(ok);
         }
 
