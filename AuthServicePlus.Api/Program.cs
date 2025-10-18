@@ -11,10 +11,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using System.Text;
 using Serilog;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks; // MapHealthChecks + HealthCheckOptions
+using HealthChecks.UI.Client;                        // красивый JSON-ответ для readiness
+using HealthChecks.NpgSql;                           // AddNpgSql(...) — проверка Postgres
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,7 +32,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Program.cs
 builder.Services.AddHealthChecks()
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection"),
+    name: "postgres",
+    tags: new[] { "ready" }
+    );
 
 
 // Add services to the container.
@@ -182,8 +187,17 @@ using (var scope = app.Services.CreateScope())
 }
 
 
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
-app.MapHealthChecks("/health/ready");
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+
 app.UseExceptionHandling();
 
 if (app.Environment.IsDevelopment())
@@ -200,8 +214,6 @@ if (app.Environment.IsDevelopment())
 
 
 app.UseHttpsRedirection();
-
-
 
 
 app.UseAuthentication();
