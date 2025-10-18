@@ -1,23 +1,39 @@
 using AuthServicePlus.Api.Extensions;
+
 using AuthServicePlus.Application.Interfaces;
 using AuthServicePlus.Domain.Interfaces;
 using AuthServicePlus.Infrastructure.Options;
 using AuthServicePlus.Infrastructure.Services;
 using AuthServicePlus.Persistence.Context;
 using AuthServicePlus.Persistence.Repositories;
+using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.Logging;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Metrics;      // для метрик и MapPrometheusScrapingEndpoint
+using OpenTelemetry.Trace;        // для трассировки
+using Serilog;
 using System.Security.Claims;
 using System.Text;
-using Serilog;
 
+
+// ---------- Serilog bootstrap  ----------
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.Console()                 
+    .CreateBootstrapLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Serilog из appsettings.json
+builder.Host.UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configuration));
+
+
 
 
 
@@ -31,6 +47,28 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Program.cs
 builder.Services.AddHealthChecks()
     .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection"));
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(r => r.AddService(
+        serviceName: builder.Configuration["OpenTelemetry:ServiceName"] ?? "AuthServicePlus.Api",
+        serviceVersion: builder.Configuration["OpenTelemetry:ServiceVersion"] ?? "1.0.0"))
+    .WithTracing(tracer => tracer
+        .AddAspNetCoreInstrumentation(o =>
+        {
+            o.RecordException = true;
+            o.Filter = ctx =>
+            {
+                var path = ctx.Request.Path.Value ?? string.Empty;
+                return !(path.StartsWith("/health") || path.StartsWith("/metrics"));
+            };
+        })
+        .AddHttpClientInstrumentation()
+        .AddOtlpExporter(o => o.Endpoint =
+            new Uri(builder.Configuration["OpenTelemetry:Otlp:Endpoint"] ?? "http://otel-collector:4317")))
+    .WithMetrics(meter => meter
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddPrometheusExporter());
 
 
 // Add services to the container.
@@ -175,6 +213,36 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Prometheus (/metrics)
+var prometheusScrape = builder.Configuration["OpenTelemetry:Prometheus:ScrapeEndpoint"] ?? "/metrics";
+app.MapPrometheusScrapingEndpoint(prometheusScrape);
+
+// Health endpoints
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false            // liveness: без внешних зависимостей
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = r => r.Tags.Contains("ready"),
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+
+app.UseSerilogRequestLogging(opts =>
+{
+    opts.GetLevel = (httpContext, elapsed, ex) =>
+    {
+        var path = httpContext.Request.Path.Value ?? "";
+        if (path.StartsWith("/health") || path.StartsWith("/metrics"))
+            return Serilog.Events.LogEventLevel.Debug;
+        return ex != null
+            ? Serilog.Events.LogEventLevel.Error
+            : Serilog.Events.LogEventLevel.Information;
+    };
+});
+
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -182,8 +250,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
-app.MapHealthChecks("/health/ready");
 app.UseExceptionHandling();
 
 if (app.Environment.IsDevelopment())
