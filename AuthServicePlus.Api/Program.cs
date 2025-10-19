@@ -214,7 +214,7 @@ app.UseSerilogRequestLogging(opts =>
     {
         var p = httpContext.Request.Path.Value ?? "";
         if (p.StartsWith("/health") || p.StartsWith("/metrics"))
-            return Serilog.Events.LogEventLevel.Debug; // не шумим
+            return Serilog.Events.LogEventLevel.Debug; 
         return ex != null
             ? Serilog.Events.LogEventLevel.Error
             : Serilog.Events.LogEventLevel.Information;
