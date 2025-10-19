@@ -19,6 +19,11 @@ using HealthChecks.UI.Client;                        // красивый JSON-о
 using HealthChecks.NpgSql;                           // AddNpgSql(...) — проверка Postgres
 
 
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.Console()   
+    .CreateBootstrapLogger();
+
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -170,15 +175,14 @@ builder.Host.UseSerilog((context, configuration) =>
 {
     configuration
     .ReadFrom.Configuration(context.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.Console();
+    .Enrich.FromLogContext();
 });
 
 builder.Services.AddAuthorization();
 
-
-
 var app = builder.Build();
+
+app.UseSerilogRequestLogging();
 
 using (var scope = app.Services.CreateScope())
 {
