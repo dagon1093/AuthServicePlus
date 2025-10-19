@@ -175,8 +175,7 @@ builder.Host.UseSerilog((context, configuration) =>
 {
     configuration
     .ReadFrom.Configuration(context.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.Console();
+    .Enrich.FromLogContext();
 });
 
 builder.Services.AddAuthorization();
