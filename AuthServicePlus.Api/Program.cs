@@ -5,20 +5,20 @@ using AuthServicePlus.Infrastructure.Options;
 using AuthServicePlus.Infrastructure.Services;
 using AuthServicePlus.Persistence.Context;
 using AuthServicePlus.Persistence.Repositories;
+using HealthChecks.NpgSql;
+using HealthChecks.UI.Client;                        // красивый JSON-ответ для readiness
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks; // MapHealthChecks + HealthCheckOptions
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System.Security.Claims;
-using System.Text;
-using Serilog;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks; // MapHealthChecks + HealthCheckOptions
-using HealthChecks.UI.Client;                        // красивый JSON-ответ для readiness
-using HealthChecks.NpgSql;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;                           // AddNpgSql(...) — проверка Postgres
+using Serilog;
+using System.Security.Claims;
+using System.Text;
 
 
 Log.Logger = new LoggerConfiguration()
@@ -59,7 +59,12 @@ builder.Services.AddOpenTelemetry()
     })
     .AddHttpClientInstrumentation()
     .AddConsoleExporter()
-    );
+    )
+    .WithMetrics(meter => meter
+        .AddAspNetCoreInstrumentation()  // метрики по входящим HTTP
+        .AddHttpClientInstrumentation()  // метрики по исходящим HttpClient
+        .AddPrometheusExporter()        // отдаём в формате Prometheus
+    ); 
 
 // Add services to the container.
 
@@ -201,8 +206,20 @@ builder.Host.UseSerilog((context, configuration) =>
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+app.MapPrometheusScrapingEndpoint("/metrics");
 
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(opts =>
+{
+    opts.GetLevel = (httpContext, elapsed, ex) =>
+    {
+        var p = httpContext.Request.Path.Value ?? "";
+        if (p.StartsWith("/health") || p.StartsWith("/metrics"))
+            return Serilog.Events.LogEventLevel.Debug; // не шумим
+        return ex != null
+            ? Serilog.Events.LogEventLevel.Error
+            : Serilog.Events.LogEventLevel.Information;
+    };
+});
 
 using (var scope = app.Services.CreateScope())
 {
