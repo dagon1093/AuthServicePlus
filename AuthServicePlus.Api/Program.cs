@@ -16,7 +16,9 @@ using System.Text;
 using Serilog;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks; // MapHealthChecks + HealthCheckOptions
 using HealthChecks.UI.Client;                        // красивый JSON-ответ для readiness
-using HealthChecks.NpgSql;                           // AddNpgSql(...) — проверка Postgres
+using HealthChecks.NpgSql;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;                           // AddNpgSql(...) — проверка Postgres
 
 
 Log.Logger = new LoggerConfiguration()
@@ -42,6 +44,22 @@ builder.Services.AddHealthChecks()
     tags: new[] { "ready" }
     );
 
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(r => r.AddService(
+        serviceName: "AuthServicePlus.Api",
+        serviceVersion: "1.0.0"))
+    .WithTracing(tracer => tracer.AddAspNetCoreInstrumentation(o =>
+    {
+        o.RecordException = true;
+        o.Filter = ctx =>
+        {
+            var p = ctx.Request.Path.Value ?? string.Empty;
+            return !(p.StartsWith("/health") || p.StartsWith("/metrics"));
+        };
+    })
+    .AddHttpClientInstrumentation()
+    .AddConsoleExporter()
+    );
 
 // Add services to the container.
 
@@ -177,6 +195,8 @@ builder.Host.UseSerilog((context, configuration) =>
     .ReadFrom.Configuration(context.Configuration)
     .Enrich.FromLogContext();
 });
+
+
 
 builder.Services.AddAuthorization();
 
