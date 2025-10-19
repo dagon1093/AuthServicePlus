@@ -16,6 +16,7 @@ using Microsoft.OpenApi.Models;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;                           // AddNpgSql(...) — проверка Postgres
+using OpenTelemetry.Exporter;
 using Serilog;
 using System.Security.Claims;
 using System.Text;
@@ -59,6 +60,13 @@ builder.Services.AddOpenTelemetry()
     })
     .AddHttpClientInstrumentation()
     .AddConsoleExporter()
+    .AddOtlpExporter(o =>
+    {
+        // читаем из конфига
+        var url = builder.Configuration["OpenTelemetry:Otlp:Endpoint"] ?? "http://localhost:4317";
+        o.Endpoint = new Uri(url);
+        // остальное по умолчанию (gRPC)
+    })
     )
     .WithMetrics(meter => meter
         .AddAspNetCoreInstrumentation()  // метрики по входящим HTTP
@@ -129,7 +137,6 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
-
 
 
 // JWT
